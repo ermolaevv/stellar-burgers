@@ -1,14 +1,17 @@
 import { useState, useRef, useEffect, FC } from 'react';
 import { useInView } from 'react-intersection-observer';
-
 import { TTabMode } from '@utils-types';
 import { BurgerIngredientsUI } from '../ui/burger-ingredients';
+import { useSelector } from '../../services/store';
+import { RootState } from '../../services/store';
 
 export const BurgerIngredients: FC = () => {
-  /** TODO: взять переменные из стора */
-  const buns = [];
-  const mains = [];
-  const sauces = [];
+  const { ingredients, loading, error } = useSelector(
+    (state: RootState) => state.burger
+  );
+  const buns = ingredients.filter((item) => item.type === 'bun');
+  const mains = ingredients.filter((item) => item.type === 'main');
+  const sauces = ingredients.filter((item) => item.type === 'sauce');
 
   const [currentTab, setCurrentTab] = useState<TTabMode>('bun');
   const titleBunRef = useRef<HTMLHeadingElement>(null);
@@ -28,26 +31,33 @@ export const BurgerIngredients: FC = () => {
   });
 
   useEffect(() => {
-    if (inViewBuns) {
-      setCurrentTab('bun');
+    if (inViewFilling) {
+      setCurrentTab('main');
     } else if (inViewSauces) {
       setCurrentTab('sauce');
-    } else if (inViewFilling) {
-      setCurrentTab('main');
+    } else if (inViewBuns) {
+      setCurrentTab('bun');
     }
   }, [inViewBuns, inViewFilling, inViewSauces]);
 
   const onTabClick = (tab: string) => {
     setCurrentTab(tab as TTabMode);
-    if (tab === 'bun')
-      titleBunRef.current?.scrollIntoView({ behavior: 'smooth' });
-    if (tab === 'main')
-      titleMainRef.current?.scrollIntoView({ behavior: 'smooth' });
-    if (tab === 'sauce')
-      titleSaucesRef.current?.scrollIntoView({ behavior: 'smooth' });
+    const scrollRefs = {
+      bun: titleBunRef,
+      main: titleMainRef,
+      sauce: titleSaucesRef
+    };
+    const refToScroll = scrollRefs[tab as keyof typeof scrollRefs];
+    refToScroll.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  return null;
+  if (loading) {
+    return <div>Загрузка...</div>;
+  }
+
+  if (error) {
+    return <div>Ошибка: {error}</div>;
+  }
 
   return (
     <BurgerIngredientsUI

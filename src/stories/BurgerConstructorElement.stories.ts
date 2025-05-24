@@ -1,6 +1,7 @@
-import { BurgerConstructorElementUI } from '@ui';
+import { BurgerConstructorElementUI } from '../components/ui';
 import type { Meta, StoryObj } from '@storybook/react';
-import { totalmem } from 'os';
+import { TConstructorIngredient } from '../utils/types';
+import { BurgerConstructorElementUIProps } from '../components/ui/burger-constructor-element/type';
 
 const meta = {
   title: 'Example/BurgerConstructorElement',
@@ -14,23 +15,30 @@ const meta = {
 } satisfies Meta<typeof BurgerConstructorElementUI>;
 
 export default meta;
-type Story = StoryObj<typeof meta>;
+
+type StoryArgs = BurgerConstructorElementUIProps;
+type Story = StoryObj<StoryArgs>;
+
+const storybookIngredientData = {
+  _id: '111',
+  id: '222',
+  uniqueId: 'unique-story-id-123',
+  name: 'Булка',
+  type: 'top' as const,
+  proteins: 12,
+  fat: 33,
+  carbohydrates: 22,
+  calories: 33,
+  price: 123,
+  image: '',
+  image_large: '',
+  image_mobile: ''
+};
 
 export const DefaultElement: Story = {
   args: {
-    ingredient: {
-      _id: '111',
-      id: '222',
-      name: 'Булка',
-      type: 'top',
-      proteins: 12,
-      fat: 33,
-      carbohydrates: 22,
-      calories: 33,
-      price: 123,
-      image: '',
-      image_large: '',
-      image_mobile: ''
+    ingredient: storybookIngredientData as TConstructorIngredient & {
+      uniqueId: string;
     },
     index: 0,
     totalItems: 1,

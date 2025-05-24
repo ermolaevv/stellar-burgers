@@ -1,7 +1,4 @@
 import { FC } from 'react';
+import { NotFound404UI } from '@ui-pages';
 
-export const NotFound404: FC = () => (
-  <h3 className={`pb-6 text text_type_main-large`}>
-    Страница не найдена. Ошибка 404.
-  </h3>
-);
+export const NotFound404: FC = () => <NotFound404UI />;
