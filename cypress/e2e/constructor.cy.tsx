@@ -40,10 +40,12 @@ describe('Конструктор бургера', () => {
 
   describe('Добавление ингредиентов в конструктор', () => {
     it('должен позволять добавить начинку в конструктор по клику', () => {
-      cy.get(CONSTRUCTOR_MAIN_AREA_SELECTOR).should('contain', 'Выберите начинку');
+      cy.get(CONSTRUCTOR_MAIN_AREA_SELECTOR)
+        .should('be.visible')
+        .and('contain', 'Выберите начинку');
       cy.get(CONSTRUCTOR_MAIN_AREA_SELECTOR).find('li').should('not.exist');
 
-      cy.get(INGREDIENT_ITEM_SELECTOR).contains(INGREDIENT_NAME_MAIN).closest(INGREDIENT_ITEM_SELECTOR).find('button').click({ force: true });
+      cy.addIngredientToConstructor(INGREDIENT_NAME_MAIN);
 
       cy.get(CONSTRUCTOR_MAIN_AREA_SELECTOR).should('not.contain', 'Выберите начинку');
       cy.get(CONSTRUCTOR_MAIN_AREA_SELECTOR).find('li').should('have.length.greaterThan', 0);
@@ -54,7 +56,7 @@ describe('Конструктор бургера', () => {
       cy.get(CONSTRUCTOR_BUN_TOP_SELECTOR).should('contain', 'Выберите булки');
       cy.get(CONSTRUCTOR_BUN_BOTTOM_SELECTOR).should('contain', 'Выберите булки');
 
-      cy.get(INGREDIENT_ITEM_SELECTOR).contains(INGREDIENT_NAME_BUN).closest(INGREDIENT_ITEM_SELECTOR).find('button').click({ force: true });
+      cy.addIngredientToConstructor(INGREDIENT_NAME_BUN);
 
       cy.get(CONSTRUCTOR_BUN_TOP_SELECTOR).should('not.contain', 'Выберите булки');
       cy.get(CONSTRUCTOR_BUN_TOP_SELECTOR).should('contain', `${INGREDIENT_NAME_BUN} (верх)`);
@@ -63,53 +65,32 @@ describe('Конструктор бургера', () => {
     });
   });
 
-  const MODAL_SELECTOR = '[data-cy="modal"]';
-  const MODAL_CLOSE_BUTTON_SELECTOR = '[data-cy="modalClose"]';
-  const MODAL_OVERLAY_SELECTOR = '[data-cy="modalCloseOverlay"]';
-
-  const INGREDIENT_IMAGE_SELECTOR = '[data-testid="ingredient-image"]';
-  const INGREDIENT_NAME_SELECTOR = '[data-testid="ingredient-name"]';
-  const INGREDIENT_CALORIES_SELECTOR = '[data-testid="ingredient-calories"]';
-  const INGREDIENT_PROTEINS_SELECTOR = '[data-testid="ingredient-proteins"]';
-  const INGREDIENT_FAT_SELECTOR = '[data-testid="ingredient-fat"]';
-  const INGREDIENT_CARBOHYDRATES_SELECTOR = '[data-testid="ingredient-carbohydrates"]';
-
   describe('Модальное окно ингредиента', () => {
     it('должен открываться по клику на ингредиент и отображать корректные данные', () => {
       cy.then(removeWebpackOverlay);
-      cy.get(INGREDIENT_ITEM_SELECTOR).contains(INGREDIENT_NAME_MAIN).click({ force: true });
+      cy.openIngredientModalAndVerifyData(INGREDIENT_NAME_MAIN, {
+        calories: '643',
+        proteins: '44',
+        fat: '26',
+        carbohydrates: '85'
+      });
       cy.then(removeWebpackOverlay);
-      cy.get(MODAL_SELECTOR).should('be.visible');
-      cy.get(INGREDIENT_NAME_SELECTOR).should('contain', INGREDIENT_NAME_MAIN);
-      cy.get(INGREDIENT_CALORIES_SELECTOR).should('contain', '643');
-      cy.get(INGREDIENT_PROTEINS_SELECTOR).should('contain', '44');
-      cy.get(INGREDIENT_FAT_SELECTOR).should('contain', '26');
-      cy.get(INGREDIENT_CARBOHYDRATES_SELECTOR).should('contain', '85');
-      cy.then(removeWebpackOverlay);
-      cy.get(INGREDIENT_IMAGE_SELECTOR)
-        .and(($img) => {
-          expect(($img[0] as HTMLImageElement).naturalWidth).to.be.greaterThan(0);
-        });
     });
 
     it('должен закрываться по клику на кнопку закрытия (крестик)', () => {
       cy.then(removeWebpackOverlay);
       cy.get(INGREDIENT_ITEM_SELECTOR).contains(INGREDIENT_NAME_MAIN).click({ force: true });
       cy.then(removeWebpackOverlay);
-      cy.get(MODAL_SELECTOR).should('be.visible');
-      cy.get(MODAL_CLOSE_BUTTON_SELECTOR).click();
+      cy.closeModalByButton();
       cy.then(removeWebpackOverlay);
-      cy.get(MODAL_SELECTOR).should('not.exist');
     });
 
     it('должен закрываться по клику на оверлей', () => {
       cy.then(removeWebpackOverlay);
       cy.get(INGREDIENT_ITEM_SELECTOR).contains(INGREDIENT_NAME_MAIN).click({ force: true });
       cy.then(removeWebpackOverlay);
-      cy.get(MODAL_SELECTOR).should('be.visible');
-      cy.get(MODAL_OVERLAY_SELECTOR).click({ force: true });
+      cy.closeModalByOverlay();
       cy.then(removeWebpackOverlay);
-      cy.get(MODAL_SELECTOR).should('not.exist');
     });
   });
 
@@ -126,35 +107,13 @@ describe('Конструктор бургера', () => {
     });
 
     it('должен успешно создавать заказ для авторизованного пользователя', () => {
-      cy.wait('@getUser');
-
-      cy.get(INGREDIENT_ITEM_SELECTOR).contains(INGREDIENT_NAME_BUN).closest(INGREDIENT_ITEM_SELECTOR).find('button').click({ force: true });
-      cy.get(INGREDIENT_ITEM_SELECTOR).contains(INGREDIENT_NAME_MAIN).closest(INGREDIENT_ITEM_SELECTOR).find('button').click({ force: true });
-
-      cy.get(CONSTRUCTOR_BUN_TOP_SELECTOR).should('contain', INGREDIENT_NAME_BUN);
-      cy.get(CONSTRUCTOR_MAIN_AREA_SELECTOR).should('contain', INGREDIENT_NAME_MAIN);
-
-      const ORDER_BUTTON_SELECTOR = '[data-cy="order-button"]';
-      cy.get(ORDER_BUTTON_SELECTOR)
-        .should('be.visible')
-        .and('not.be.disabled')
-        .click();
-
-      cy.wait('@createOrder', { timeout: 10000 }).its('request.body').should('deep.include', {
-        ingredients: [BUN_ID, MAIN_ID, BUN_ID]
+      cy.createOrder({
+        bunName: INGREDIENT_NAME_BUN,
+        mainIngredientName: INGREDIENT_NAME_MAIN,
+        bunId: BUN_ID,
+        mainIngredientId: MAIN_ID,
+        expectedOrderNumber: '123456'
       });
-      
-      const ORDER_NUMBER_SELECTOR = '[data-cy="order-number"]';
-      cy.get(MODAL_SELECTOR).should('be.visible');
-      cy.get(ORDER_NUMBER_SELECTOR).should('contain', '123456');
-
-      cy.get(MODAL_CLOSE_BUTTON_SELECTOR).click();
-      cy.get(MODAL_SELECTOR).should('not.exist');
-
-      cy.get(CONSTRUCTOR_BUN_TOP_SELECTOR).should('contain', 'Выберите булки');
-      cy.get(CONSTRUCTOR_BUN_BOTTOM_SELECTOR).should('contain', 'Выберите булки');
-      cy.get(CONSTRUCTOR_MAIN_AREA_SELECTOR).should('contain', 'Выберите начинку');
-      cy.get(CONSTRUCTOR_MAIN_AREA_SELECTOR).find('li').should('not.exist');
     });
 
     afterEach(() => {
