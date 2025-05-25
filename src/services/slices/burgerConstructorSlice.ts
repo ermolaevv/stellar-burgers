@@ -3,7 +3,7 @@ import { TIngredient, TConstructorIngredient } from '../../utils/types';
 import { RootState } from '../store';
 
 interface BurgerConstructorState {
-  bun: TIngredient | null;
+  bun: TConstructorIngredient | null;
   ingredients: TConstructorIngredient[];
   totalPrice: number;
 }

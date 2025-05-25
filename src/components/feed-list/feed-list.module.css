@@ -2,9 +2,7 @@
   list-style: none;
   padding: 0;
   margin: 0;
-  max-height: calc(
-    100vh - 280px
-  );
+  max-height: calc(100vh - 280px);
   overflow-y: auto;
   display: flex;
   flex-direction: column;

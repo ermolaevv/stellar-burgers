@@ -1,9 +1,9 @@
-import { setCookie, getCookie } from './cookie';
+import { setCookie, getCookie, deleteCookie } from './cookie';
 import { TIngredient, TOrder, TOrdersData, TUser } from './types';
 
 const URL = process.env.BURGER_API_URL;
 
-const checkResponse = <T>(res: Response): Promise<T> =>
+export const checkResponse = <T>(res: Response): Promise<T> =>
   res.ok ? res.json() : res.json().then((err) => Promise.reject(err));
 
 type TServerResponse<T> = {
@@ -15,14 +15,18 @@ type TRefreshResponse = TServerResponse<{
   accessToken: string;
 }>;
 
-export const refreshToken = (): Promise<TRefreshResponse> =>
-  fetch(`${URL}/auth/token`, {
+export const refreshToken = (): Promise<TRefreshResponse> => {
+  const token = localStorage.getItem('refreshToken');
+  if (!token) {
+    return Promise.reject(new Error('No refresh token in localStorage'));
+  }
+  return fetch(`${URL}/auth/token`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json;charset=utf-8'
     },
     body: JSON.stringify({
-      token: localStorage.getItem('refreshToken')
+      token
     })
   })
     .then((res) => checkResponse<TRefreshResponse>(res))
@@ -31,9 +35,18 @@ export const refreshToken = (): Promise<TRefreshResponse> =>
         return Promise.reject(refreshData);
       }
       localStorage.setItem('refreshToken', refreshData.refreshToken);
-      setCookie('accessToken', refreshData.accessToken);
+
+      let tokenToSave = refreshData.accessToken;
+      if (
+        typeof refreshData.accessToken === 'string' &&
+        refreshData.accessToken.startsWith('Bearer ')
+      ) {
+        tokenToSave = refreshData.accessToken.substring(7);
+      }
+      setCookie('accessToken', tokenToSave);
       return refreshData;
     });
+};
 
 export const fetchWithRefresh = async <T>(
   url: RequestInfo,
@@ -231,4 +244,12 @@ export const logoutApi = () =>
     body: JSON.stringify({
       token: localStorage.getItem('refreshToken')
     })
-  }).then((res) => checkResponse<TServerResponse<{}>>(res));
+  })
+    .then((res) => checkResponse<TServerResponse<{}>>(res))
+    .then((data) => {
+      if (data.success) {
+        localStorage.removeItem('refreshToken');
+        deleteCookie('accessToken');
+      }
+      return data;
+    });
