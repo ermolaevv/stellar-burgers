@@ -1,0 +1,19 @@
+{
+  "success": true,
+  "name": "Люминесцентный краторный бургер",
+  "order": {
+    "number": 123456,
+    "status": "done",
+    "name": "Люминесцентный краторный бургер",
+    "createdAt": "2025-05-25T12:38:42Z",
+    "updatedAt": "2025-05-25T12:38:42Z",
+    "ingredients": [
+      "60d3b41abdacab0026a733c6",
+      "60d3b41abdacab0026a733c8",
+      "60d3b41abdacab0026a733c6"
+    ],
+    "_id": "mockOrderId123",
+    "owner": "mockUserId",
+    "price": 1500
+  }
+} 

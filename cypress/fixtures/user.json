@@ -1,0 +1,9 @@
+{
+  "success": true,
+  "user": {
+    "email": "test-user@example.com",
+    "name": "Test BurgerMaster"
+  },
+  "accessToken": "mock.access.token",
+  "refreshToken": "mock.refresh.token"
+} 

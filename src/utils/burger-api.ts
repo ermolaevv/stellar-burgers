@@ -1,9 +1,9 @@
-import { setCookie, getCookie } from './cookie';
+import { setCookie, getCookie, deleteCookie } from './cookie';
 import { TIngredient, TOrder, TOrdersData, TUser } from './types';
 
 const URL = process.env.BURGER_API_URL;
 
-const checkResponse = <T>(res: Response): Promise<T> =>
+export const checkResponse = <T>(res: Response): Promise<T> =>
   res.ok ? res.json() : res.json().then((err) => Promise.reject(err));
 
 type TServerResponse<T> = {
@@ -15,14 +15,18 @@ type TRefreshResponse = TServerResponse<{
   accessToken: string;
 }>;
 
-export const refreshToken = (): Promise<TRefreshResponse> =>
-  fetch(`${URL}/auth/token`, {
+export const refreshToken = (): Promise<TRefreshResponse> => {
+  const token = localStorage.getItem('refreshToken');
+  if (!token) {
+    return Promise.reject(new Error('No refresh token in localStorage'));
+  }
+  return fetch(`${URL}/auth/token`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json;charset=utf-8'
     },
     body: JSON.stringify({
-      token: localStorage.getItem('refreshToken')
+      token
     })
   })
     .then((res) => checkResponse<TRefreshResponse>(res))
@@ -31,9 +35,18 @@ export const refreshToken = (): Promise<TRefreshResponse> =>
         return Promise.reject(refreshData);
       }
       localStorage.setItem('refreshToken', refreshData.refreshToken);
-      setCookie('accessToken', refreshData.accessToken);
+
+      let tokenToSave = refreshData.accessToken;
+      if (
+        typeof refreshData.accessToken === 'string' &&
+        refreshData.accessToken.startsWith('Bearer ')
+      ) {
+        tokenToSave = refreshData.accessToken.substring(7);
+      }
+      setCookie('accessToken', tokenToSave);
       return refreshData;
     });
+};
 
 export const fetchWithRefresh = async <T>(
   url: RequestInfo,
@@ -51,9 +64,8 @@ export const fetchWithRefresh = async <T>(
       }
       const res = await fetch(url, options);
       return await checkResponse<T>(res);
-    } else {
-      return Promise.reject(err);
     }
+    return Promise.reject(err);
   }
 };
 
@@ -67,7 +79,7 @@ type TFeedsResponse = TServerResponse<{
   totalToday: number;
 }>;
 
-type TOrdersResponse = TServerResponse<{
+export type TOrdersResponse = TServerResponse<{
   data: TOrder[];
 }>;
 
@@ -119,7 +131,7 @@ export const orderBurgerApi = (data: string[]) =>
     return Promise.reject(data);
   });
 
-type TOrderResponse = TServerResponse<{
+export type TOrderResponse = TServerResponse<{
   orders: TOrder[];
 }>;
 
@@ -137,7 +149,7 @@ export type TRegisterData = {
   password: string;
 };
 
-type TAuthResponse = TServerResponse<{
+export type TAuthResponse = TServerResponse<{
   refreshToken: string;
   accessToken: string;
   user: TUser;
@@ -204,7 +216,7 @@ export const resetPasswordApi = (data: { password: string; token: string }) =>
       return Promise.reject(data);
     });
 
-type TUserResponse = TServerResponse<{ user: TUser }>;
+export type TUserResponse = TServerResponse<{ user: TUser }>;
 
 export const getUserApi = () =>
   fetchWithRefresh<TUserResponse>(`${URL}/auth/user`, {
@@ -232,4 +244,12 @@ export const logoutApi = () =>
     body: JSON.stringify({
       token: localStorage.getItem('refreshToken')
     })
-  }).then((res) => checkResponse<TServerResponse<{}>>(res));
+  })
+    .then((res) => checkResponse<TServerResponse<{}>>(res))
+    .then((data) => {
+      if (data.success) {
+        localStorage.removeItem('refreshToken');
+        deleteCookie('accessToken');
+      }
+      return data;
+    });

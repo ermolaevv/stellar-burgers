@@ -1,0 +1,30 @@
+.containerMain {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+.title {
+  text-align: left;
+}
+
+.content {
+  display: flex;
+  gap: 60px;
+}
+
+.feedListContainer {
+  flex: 1;
+  min-width: 0;
+}
+
+.feedInfoContainer {
+  width: 580px;
+  flex-shrink: 0;
+}
+
+.refreshButton {
+  margin-top: 20px;
+  padding: 10px 20px;
+  cursor: pointer;
+}
